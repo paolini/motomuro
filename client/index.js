@@ -1,50 +1,97 @@
-class Board {
-    constructor(canvas, width, height) {
-        this.width = width
-        this.height = height
-        this.pix_x = Math.floor(Math.min(canvas.width / width, canvas.height / height))
-        this.pix_y = this.pix_x
-        this.off_x = (canvas.width - this.pix_x*width) / 2
-        this.off_y = (canvas.height - this.pix_y*height) / 2
-        this.ctx = canvas.getContext("2d")
-        this.buffer = []
-        this.queue = []
-        this.palette = ["black", "white", "red", "green"]
-        this.clear(0)
+class Main {
+    constructor() {
+        this.$canvas = document.getElementById("canvas")
+        this.$connection = document.getElementById("connection")
+        document.getElementById("start").onclick = (evt => this.send(["start"]))
+        document.getElementById("stop").onclick = (evt => this.send(["stop"]))
+        this.socket = null
+        this.connect()
+
+        document.onkeydown = evt => {
+            if (!this.socket) return
+            if (evt.key == "o") this.send(["cmd", "left"])
+            else if (evt.key == "p") this.send(["cmd", "right"])
+            else if (evt.key == "ArrowLeft") {
+                if (this.game.players[0][2]==1) this.send(["cmd", "right"])
+                if (this.game.players[0][2]==3) this.send(["cmd", "left"])                
+            } else if (evt.key == "ArrowRight") {
+                if (this.game.players[0][2]==3) this.send(["cmd", "right"])
+                if (this.game.players[0][2]==1) this.send(["cmd", "left"])                
+            } else if (evt.key == "ArrowUp") {
+                if (this.game.players[0][2]==2) this.send(["cmd", "right"])
+                if (this.game.players[0][2]==0) this.send(["cmd", "left"])                
+            } else if (evt.key == "ArrowDown") {
+                if (this.game.players[0][2]==0) this.send(["cmd", "right"])
+                if (this.game.players[0][2]==2) this.send(["cmd", "left"])                
+            }
+        }
+    }
+    
+    connect() {
+        this.$connection.textContent = "connecting..."
+        this.socket = new WebSocket('ws://localhost:8000');
+
+        // Connection opened
+        this.socket.addEventListener('open', event => {
+            this.send(['hello']);
+            this.$connection.textContent = "connected"
+        })
+
+        this.socket.addEventListener('close', event => {
+            this.$connection.textContent = "disconnected"
+            setTimeout(() => this.connect(), 5000)
+        })
+
+        // Listen for messages
+        this.socket.addEventListener('message', event => { this.recv(event.data) })
     }
 
-    set_pix(x, y, value) {
-        const addr = y*this.width + x
-        if (this.buffer[addr] != value) {
-            this.queue.push([x, y, value])
-            this.buffer[addr] = value
+    send(payload) {
+        this.socket.send(JSON.stringify(payload))
+    }
+
+    recv(msg) {
+        const payload = JSON.parse(msg)
+        const cmd = payload[0]
+        if (cmd == "hello") {
+            console.log("server said hello")
+        } else if (cmd == "start") {
+            this.start()
+        } else if (cmd == "stop") {
+            this.stop()
+        } else if (cmd == "update") {
+            console.log(`frame ${payload[1]}`)
+            this.game.update(payload[2])
+            this.draw()
+        } else {
+            console.error(`unknown command from server: ${cmd}`)
         }
     }
 
-    get_pix(x, y) {
-        const addr = y*this.width + x
-        return this.buffer[addr]
+    stop() {
     }
 
-    clear(value) {
-        this.queue.length = 0
-        this.queue.push([-1,-1,value])
-        for(let i=0; i<this.width*this.height; ++i) this.buffer[i] = value
+    start() {
+        this.game = new Game()
+        const width = this.game.board.width
+        const height = this.game.board.height
+        this.pix_x = Math.floor(Math.min(
+            this.$canvas.width / width, 
+            this.$canvas.height / height))
+        this.pix_y = this.pix_x
+        this.off_x = (this.$canvas.width - this.pix_x*width) / 2
+        this.off_y = (this.$canvas.height - this.pix_y*height) / 2
+        this.ctx = this.$canvas.getContext("2d")
+        this.palette = ["black", "white", "red", "green"]
+        this.game.board.clear(0)
+        this.draw()
     }
-
+    
     draw() {
         const ctx = this.ctx
-        this.queue.forEach(([x, y, value]) => {
-            ctx.fillStyle = this.palette[value]
-            if (x == -1) { // clear
-                ctx.beginPath()
-                ctx.moveTo(this.off_x, this.off_y)
-                ctx.lineTo(this.off_x + this.pix_x*this.width, this.off_y)
-                ctx.lineTo(this.off_x + this.pix_x*this.width, this.off_y + this.pix_y*this.height)
-                ctx.lineTo(this.off_x, this.off_y + this.pix_y*this.height)
-                ctx.closePath()
-                ctx.fill()
-            } else {
+        for (let y=0; y < this.game.board.height; ++y) {
+            for (let x=0; x < this.game.board.width; ++x) {
+                ctx.fillStyle = this.palette[this.game.board.get_pix(x, y)]
                 ctx.beginPath()
                 const pix_x = this.off_x + this.pix_x*x
                 const pix_y = this.off_y + this.pix_y*y
@@ -55,61 +102,8 @@ class Board {
                 ctx.closePath()
                 ctx.fill()
             }
-        })
-        this.queue.length = 0
-    }
-}
-
-class Game {
-    constructor(canvas_id) {
-        this.canvas = document.getElementById(canvas_id)
-        this.board = new Board(canvas, 30, 20)
-        this.players = [[5,5,0]] // [ [x, y, dir]]
-        document.onkeydown = evt => {
-            if (evt.key == "o") this.command_left(0)
-            else if (evt.key == "p") this.command_right(0)
-            else if (evt.key == "ArrowLeft") this.players[0][2]=2
-            else if (evt.key == "ArrowRight") this.players[0][2]=0
-            else if (evt.key == "ArrowUp") this.players[0][2]=3
-            else if (evt.key == "ArrowDown") this.players[0][2]=1
         }
-    }    
-
-    command_right(player) {
-        var d = this.players[player][2]
-        d++
-        if (d==4) d=0
-        this.players[player][2] = d
-    }
-
-    command_left(player) {
-        var d = this.players[player][2]
-        d--
-        if (d<0) d=3
-        this.players[player][2] = d
-    }
-
-    update() {
-        this.players = this.players.map(([x, y, d]) => {
-            x += [1, 0, -1, 0][d]
-            y += [0, 1, 0, -1][d]
-            if (x<0) x = this.board.width-1
-            else if (x>=this.board.width) x = 0
-            if (y<0) y = this.board.height-1
-            else if (y>=this.board.height) y = 0
-            this.board.set_pix(x, y, 1)
-            return [x, y, d]
-        })
-    }
-
-    draw() {
-        this.board.draw()
     }
 }
 
-const game = new Game("canvas")
-game.draw()
-setInterval(() => {
-    game.update()
-    game.draw()
-}, 500)
+new Main()

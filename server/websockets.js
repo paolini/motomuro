@@ -1,5 +1,4 @@
 var next_connection_id = 1
-var connections = []
 
 class Connection {
     constructor(ws, req, client) {
@@ -7,18 +6,25 @@ class Connection {
         this.ws = ws
         this.client = client
         this.alive = true
-
-        this.ws.send(`CON ${this.id}`)
+        this.listeners = []
         this.ws.on('message', msg => this.recv(msg))
         this.ws.on('close', () => this.close())
+        this.send(["hello"])
         this.heart_beat = setInterval(() => this.ping(), 10000)
+    }
 
-        connections.push(this)
+    add_listener(callback) {
+        this.listeners.push(callback)        
+    }
+
+    send(payload) {
+        this.ws.send(JSON.stringify(payload))
     }
 
     recv(msg) {
-        this.ws.send(`ERR cannot understand message: ${msg}`)
-        console.log(`${this.id} invalid message: ${msg}`)
+        console.log(`${this.id} message: ${msg}`)
+        const payload = JSON.parse(msg)
+        this.listeners.forEach(cb => cb(payload))
     }
 
     ping() {
@@ -36,14 +42,9 @@ class Connection {
 
     close() {
         clearInterval(this.heart_beat)
-        connections = connections.filter(c => (c !== this))
         this.ws.close()
         console.log(`${this.id} CONNECTION CLOSED`)
     }
-}
-
-function new_connection(ws, req, client) {
-    new Connection(ws, client)
 }
 
 exports.Connection = Connection

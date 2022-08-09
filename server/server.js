@@ -3,11 +3,17 @@ const express = require('express')
 const morgan = require('morgan')
 const ws = require('ws')
 const websockets = require('./websockets')
+const Game = require('./game').Game
+
+let game = new Game()
 
 const app = express();
 
 const wsServer = new ws.Server({ noServer: true });
-wsServer.on('connection', (ws, req, client) => new Connection(ws, req, client));
+wsServer.on('connection', (ws, req, client) => {
+  game.add_connection(new websockets.Connection(ws, req, client))
+});
+  
 
 app.use(morgan('tiny'));
 app.use(express.static('client'));
