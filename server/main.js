@@ -17,17 +17,47 @@ class Main {
             'hello': () => console.log(`hello from connection`),
             'start': () => this.start(payload),
             'stop': () => this.stop(),
-            'cmd': (payload) => this.commands.push([0, payload[1]])
+            'cmd': () => this.cmd(payload)
         }
-        let fn = cmds[payload[0]]
+        let fn = null
+        try {
+            fn = cmds[payload[0]]
+        } catch(err) {
+            console.log(`invalid message ${JSON.stringify(payload)}`)
+            return
+        }
         if (fn) fn(payload)
         else console.log(`invalid command ${payload[0]}`)
-    }
+}
 
     sendAll(payload) {
         this.connections.forEach(connection => {
             connection.send(payload)
         })
+    }
+
+    cmd(payload) {
+        if (!this.game) {
+            console.log(`CMD when game is not started`)
+            return
+        }
+        let cmd = null
+        try {
+            cmd = payload[1]
+        } catch (err) {
+            console.log(`invalid payload ${JSON.stringify(payload)}`)
+            return
+        }
+        if (cmd === "left") this.commands.push([0, "left"])
+        else if (cmd === "right") this.commands.push([0, "right"])
+        else if (cmd === "spawn") {
+            this.commands.push([0, "spawn", 
+                Math.floor(Math.random()*this.game.board.width),
+                Math.floor(Math.random()*this.game.board.height)])
+        } else {
+            console.log(`invalid CMD ${cmd}`)
+            return
+        }
     }
 
     start(payload) {

@@ -13,7 +13,6 @@ const wsServer = new ws.Server({ noServer: true });
 wsServer.on('connection', (ws, req, client) => {
   main.add_connection(new websockets.Connection(ws, req, client))
 });
-  
 
 app.use(morgan('tiny'));
 app.use(express.static('client'));
