@@ -2,7 +2,11 @@ class Main {
     constructor() {
         this.$canvas = document.getElementById("canvas")
         this.$connection = document.getElementById("connection")
-        document.getElementById("start").onclick = (evt => this.send(["start"]))
+        document.getElementById("start").onclick = (evt => this.send(["start", {
+            width: 100,
+            height: 100,
+            fps: 20
+        }]))
         document.getElementById("stop").onclick = (evt => this.send(["stop"]))
         this.socket = null
         this.connect()
@@ -56,7 +60,7 @@ class Main {
         if (cmd == "hello") {
             console.log("server said hello")
         } else if (cmd == "start") {
-            this.start()
+            this.start(payload[1])
         } else if (cmd == "stop") {
             this.stop()
         } else if (cmd == "update") {
@@ -71,8 +75,8 @@ class Main {
     stop() {
     }
 
-    start() {
-        this.game = new Game()
+    start(options) {
+        this.game = new Game(options)
         const width = this.game.board.width
         const height = this.game.board.height
         this.pix_x = Math.floor(Math.min(

@@ -1,6 +1,6 @@
 const common = require('../client/game')
 
-class Game {
+class Main {
     constructor() {
         this.timer = null
         this.game = null
@@ -15,7 +15,7 @@ class Game {
     recv(payload) {
         const cmds = {
             'hello': () => console.log(`hello from connection`),
-            'start': () => this.start(),
+            'start': () => this.start(payload),
             'stop': () => this.stop(),
             'cmd': (payload) => this.commands.push([0, payload[1]])
         }
@@ -30,14 +30,15 @@ class Game {
         })
     }
 
-    start() {
+    start(payload) {
         if (this.game) this.stop()
-        this.game = new common.Game()
+        this.game = new common.Game(payload[1])
         this.timer = setInterval(() => {
             this.update()
-        },1000)
+        }, 1000 / (parseInt(payload[1]['fps']) || 1))
         this.frame_count = 0
-        this.sendAll(["start"])
+        console.log(`sendAll: ${JSON.stringify(payload)}`)
+        this.sendAll(payload)
         this.commands = []
     }
 
@@ -57,4 +58,4 @@ class Game {
     }
 }
 
-exports.Game = Game
+exports.Main = Main

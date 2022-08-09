@@ -22,8 +22,10 @@ class Board {
 }
 
 class Game {
-    constructor() {
-        this.board = new Board(30, 20)
+    constructor(options) {
+        let width = options['width'] || 30
+        let height = options['height'] || 20
+        this.board = new Board(width, height)
         this.players = [[5,5,0]]
     }    
 
