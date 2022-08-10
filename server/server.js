@@ -26,6 +26,6 @@ server.on('upgrade', (request, socket, head) => {
       wsServer.emit('connection', socket, request);
     });
   });
-
+console.log(`MOTOMURO (manu-fatto) 2022`)
 console.log(`server started: http://localhost:${PORT}`);
 

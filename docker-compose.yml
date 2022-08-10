@@ -1,0 +1,15 @@
+version: "2.1"
+
+services:
+  motomuro:
+    image: paolini/motomuro:latest
+    restart: unless-stopped
+#    networks:
+#      - backend
+    ports:
+      - 8992:8000
+
+#networks:
+#  backend:
+#  web:
+#    external: true
