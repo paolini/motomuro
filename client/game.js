@@ -1,3 +1,5 @@
+"strict"
+
 class Board {
     constructor(width, height) {
         this.width = width
@@ -30,16 +32,34 @@ class Board {
 
 class Game {
     constructor(options) {
+        console.log(`create game ${JSON.stringify(options)}`)
+        this.options = options
         let width = options['width'] || 30
         let height = options['height'] || 20
-        let n_players = options['n_players'] || 0
         this.board = new Board(width, height)
         this.players = []
-        this.add_players(n_players)
+        this.options.n_players = 0
+        this.frame_count = 0
     }    
     
-    add_players(n) {
-        for(let i=0; i<n; ++i) this.players.push([0,0,-1])
+    add_player(player) {
+        // [x, y, d, name]
+        // d = -2: quit
+        // d = -1: died
+        // d = 0,1,2,3: moving in direction E, S, W, N
+        // d = 4: spawned 
+        console.log(`game ${this.options.id} add_player ${JSON.stringify(player)}`)
+        this.players.push(player)
+        if (player[2] !== -2) this.options.n_players ++
+        console.log(`game options: ${JSON.stringify(this.options)}`)
+        return this.players.length-1
+    }
+
+    remove_player(player_id) {
+        console.log(`game ${this.options.id} remove_player ${player_id}`)
+        console.log(`players ${JSON.stringify(this.players)}`)
+        this.players[player_id][2] = -2
+        this.options.n_players --
     }
 
     command(cmd) {
@@ -64,11 +84,13 @@ class Game {
     }
 
     update(commands) {
+        this.frame_count ++
         commands.forEach(payload => this.command(payload))
         let died = []
         this.players = this.players.map(([x, y, d], player_id) => {
             if (d<0) {
-                // not spawned                
+                // -1 not spawned
+                // -2 quit              
             } else if (d<4) {
                 // moving
                 x += [1, 0, -1, 0][d]

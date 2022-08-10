@@ -1,18 +1,22 @@
+"strict"
+
+const $ = id => document.getElementById(id)
+const $new = name => document.createElement(name)
+
 class Main {
     constructor() {
-        this.$canvas = document.getElementById("canvas")
-        this.$connection = document.getElementById("connection")
-        this.$name = document.getElementById("name")
         this.game = null
         this.player_id = -1
-
-        if (!this.$name.value) {
-            this.$name.value = `${Math.floor(Math.random()*100000)}`
-        }
-        document.getElementById("start").onclick = (evt => this.send(["start", 100, 100, 20]))
-        document.getElementById("stop").onclick = (evt => this.send(["stop"]))
+        $("name_button").onclick = (evt => {
+            this.send(["set_name", $("name_input").value])
+        })
+        $("game_button").onclick = (evt => {
+            this.send(["new_room", $("game_input").value, 100, 100, 20])
+        })
         this.socket = null
         this.connect()
+        this.players = []
+        this.rooms = []
 
         document.onkeydown = evt => {
             if (!this.socket) return
@@ -39,21 +43,22 @@ class Main {
     }
     
     connect() {
+        const $connection = $("connection")
         let WS_URL = ((window.location.protocol === "https:" ? "wss://" : "ws://") 
             + window.location.hostname
             + (window.location.port ? ":" + window.location.port : ""));
 
-        this.$connection.textContent = "connecting..."
+        $connection.textContent = "connecting..."
         this.socket = new WebSocket(WS_URL);
 
         // Connection opened
         this.socket.addEventListener('open', event => {
             this.send(['hello']);
-            this.$connection.textContent = "connected"
+            $connection.textContent = "connected"
         })
 
         this.socket.addEventListener('close', event => {
-            this.$connection.textContent = "disconnected"
+            $connection.textContent = "disconnected"
             setTimeout(() => this.connect(), 5000)
         })
 
@@ -70,24 +75,38 @@ class Main {
         // console.log(`recv(${msg})`)
         const payload = JSON.parse(msg)
         const cmd = payload[0]
-        if (cmd == "hello") {
+        if (cmd === "hello") {
             console.log("server said hello")
-        } else if (cmd == "start") {
-            this.start(payload)
-        } else if (cmd == "stop") {
-            this.stop()
-        } else if (cmd == "update") {
+        } else if (cmd === "update") {
             if (this.game) {
                 this.game.update(payload[2])
                 this.draw()
             }
-        } else if (cmd == "board") {
+        } else if (cmd === "start") {
+            this.start(payload)
+        } else if (cmd === "stop") {
+            this.stop()
+        } else if (cmd === "board") {
             this.game.frame_count = payload[1]
             this.game.players = payload[2]
             this.game.board.buffer = payload[3]
             this.draw()
-        } else if (cmd == "add_players") {
-            this.game.add_players(payload[1])
+        } else if (cmd === "add_player") {
+            this.game.add_player(payload[1])
+        } else if (cmd === "players") {
+            this.players = payload[1]
+            this.update_hall()
+        } else if (cmd === "rooms") {
+            this.rooms = payload[1]
+            this.update_hall()
+        } else if (cmd === "room_ready") {
+            this.send(["join", payload[1]])
+        } else if (cmd === "game") {
+            const options = payload[1]
+            this.player_id = payload[2]
+            const players = payload[3]
+            this.game = new Game(options)
+            players.forEach(player => this.game.add_player(player))    
         } else {
             console.error(`unknown command from server: ${cmd}`)
         }
@@ -97,18 +116,19 @@ class Main {
     }
 
     start(payload) {
+        const $canvas = $("canvas")
         this.player_id = payload[1]
         console.log(`start ${this.player_id}`)
         this.game = new Game({n_players: payload[2], width: payload[3], height: payload[4]})
         const width = this.game.board.width
         const height = this.game.board.height
         this.pix_x = Math.floor(Math.min(
-            this.$canvas.width / width, 
-            this.$canvas.height / height))
+            $canvas.width / width, 
+            $canvas.height / height))
         this.pix_y = this.pix_x
-        this.off_x = (this.$canvas.width - this.pix_x*width) / 2
-        this.off_y = (this.$canvas.height - this.pix_y*height) / 2
-        this.ctx = this.$canvas.getContext("2d")
+        this.off_x = ($canvas.width - this.pix_x*width) / 2
+        this.off_y = ($canvas.height - this.pix_y*height) / 2
+        this.ctx = $canvas.getContext("2d")
         this.palette = ["black", "white", "red", "green"]
         this.game.board.clear(0)
         this.draw()
@@ -132,6 +152,62 @@ class Main {
                 ctx.fill()
             }
         }
+    }
+
+    update_hall() {
+        const $hall = $("hall")
+        $hall.replaceChildren()
+        let $p, $ul
+        
+        $p = $new("p")
+        $hall.appendChild($p)
+        $p.textContent = "Games:"
+        $ul = $new("ul")
+        $hall.appendChild($ul)
+        this.rooms.forEach(room => {
+            let $li = $new("li")
+            $ul.appendChild($li)
+            $li.textContent = `${room[1].name} (${room[1].n_players} players) `
+
+            let $button = $new("button")
+            $li.appendChild($button)
+            if (this.game && room[1].id === this.game.options.id) {
+                // ci sono entrato
+                $button.textContent = "play!"
+                $button.onclick = evt => {
+                    this.send(["start"])
+                }
+                $button = $new("button")
+                $li.appendChild($button)
+                $button.textContent = "leave"
+                $button.onclick = evt => {
+                    this.send(["leave"])
+                    this.game = null
+                    this.player_id = -1
+                }
+            } else {
+                $button.textContent = "join"
+                $button.onclick = evt => {
+                    this.send(["join", room[1].id])
+                }
+            }
+        })
+        if (this.rooms.length === 0) {
+            let $li = $new("li")
+            $ul.appendChild($li)
+            $li.textContent = "no game yet... please create one!"
+        }
+
+        $p = $new("p")
+        $hall.appendChild($p) 
+        $p.textContent = "Players:"
+        $ul = $new("ul")
+        $hall.appendChild($ul)
+        this.players.forEach(player => {
+            let $li = $new("li")
+            $ul.appendChild($li)
+            $li.textContent = player[1]
+        })
     }
 }
 

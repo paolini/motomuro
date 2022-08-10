@@ -9,21 +9,39 @@ class Connection {
         this.listeners = []
         this.ws.on('message', msg => this.recv(msg))
         this.ws.on('close', () => this.close())
-        this.send(["hello"])
-        this.heart_beat = setInterval(() => this.ping(), 10000)
+        this.send(["hello", this.id])
+        if (false) {
+            this.heart_beat = setInterval(() => this.ping(), 10000)
+        }
     }
 
     add_listener(callback) {
         this.listeners.push(callback)        
     }
 
+    remove_listener(callback) {
+        this.listeners = this.listeners.filter(cb => (cb !== callback))
+    }
+
     send(payload) {
+        console.log(`send to ${this.id} msg ${JSON.stringify(payload)}`)
         this.ws.send(JSON.stringify(payload))
     }
 
     recv(msg) {
         console.log(`${this.id} message: ${msg}`)
-        const payload = JSON.parse(msg)
+        let cmd, payload
+        try {
+            payload = JSON.parse(msg)
+            cmd = payload[0]
+        } catch(err) {
+            console.log(`connection ${this.id} invalid msg: ${msg}`)
+            return
+        }
+        if (cmd === 'hello') {
+            console.log(`hello from connection ${this.id}`)
+            return // listeners are not interested
+        }
         this.listeners.forEach(cb => cb(this, payload))
     }
 
