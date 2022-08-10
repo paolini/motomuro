@@ -39,8 +39,12 @@ class Main {
     }
     
     connect() {
+        let WS_URL = ((window.location.protocol === "https:" ? "wss://" : "ws://") 
+            + window.location.hostname
+            + (window.location.port ? ":" + window.location.port : ""));
+
         this.$connection.textContent = "connecting..."
-        this.socket = new WebSocket('ws://localhost:8000');
+        this.socket = new WebSocket(WS_URL);
 
         // Connection opened
         this.socket.addEventListener('open', event => {
