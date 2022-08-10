@@ -3,20 +3,18 @@ class Main {
         this.$canvas = document.getElementById("canvas")
         this.$connection = document.getElementById("connection")
         this.$name = document.getElementById("name")
+        this.game = null
+        this.player_id = -1
+
         if (!this.$name.value) {
             this.$name.value = `${Math.floor(Math.random()*100000)}`
         }
-        document.getElementById("start").onclick = (evt => this.send(["start", {
-            width: 100,
-            height: 100,
-            fps: 20
-        }]))
+        document.getElementById("start").onclick = (evt => this.send(["start", 100, 100, 20]))
         document.getElementById("stop").onclick = (evt => this.send(["stop"]))
         this.socket = null
         this.connect()
 
         document.onkeydown = evt => {
-            this.send(null)
             if (!this.socket) return
             if (evt.key == "o") this.send(["cmd", "left"])
             else if (evt.key == "p") this.send(["cmd", "right"])
@@ -32,7 +30,7 @@ class Main {
             } else if (evt.key == "ArrowDown") {
                 if (this.game.players[0][2]==0) this.send(["cmd", "right"])
                 if (this.game.players[0][2]==2) this.send(["cmd", "left"])                
-            } else if (evt.key == " ") {
+            } else if (evt.key == "s") {
                 this.send(["cmd", "spawn"])
             } else {
                 console.log(`key ${evt.key} pressed`)
@@ -60,17 +58,18 @@ class Main {
     }
 
     send(payload) {
+        console.log(`send(${JSON.stringify(payload)})`)
         this.socket.send(JSON.stringify(payload))
     }
 
     recv(msg) {
-        console.log(`recv(${msg})`)
+        // console.log(`recv(${msg})`)
         const payload = JSON.parse(msg)
         const cmd = payload[0]
         if (cmd == "hello") {
             console.log("server said hello")
         } else if (cmd == "start") {
-            this.start(payload[1])
+            this.start(payload)
         } else if (cmd == "stop") {
             this.stop()
         } else if (cmd == "update") {
@@ -78,6 +77,13 @@ class Main {
                 this.game.update(payload[2])
                 this.draw()
             }
+        } else if (cmd == "board") {
+            this.game.frame_count = payload[1]
+            this.game.players = payload[2]
+            this.game.board.buffer = payload[3]
+            this.draw()
+        } else if (cmd == "add_players") {
+            this.game.add_players(payload[1])
         } else {
             console.error(`unknown command from server: ${cmd}`)
         }
@@ -86,8 +92,10 @@ class Main {
     stop() {
     }
 
-    start(options) {
-        this.game = new Game(options)
+    start(payload) {
+        this.player_id = payload[1]
+        console.log(`start ${this.player_id}`)
+        this.game = new Game({n_players: payload[2], width: payload[3], height: payload[4]})
         const width = this.game.board.width
         const height = this.game.board.height
         this.pix_x = Math.floor(Math.min(
@@ -106,7 +114,9 @@ class Main {
         const ctx = this.ctx
         for (let y=0; y < this.game.board.height; ++y) {
             for (let x=0; x < this.game.board.width; ++x) {
-                ctx.fillStyle = this.palette[this.game.board.get_pix(x, y)]
+                let idx = this.game.board.get_pix(x,y);
+                if (idx >= this.palette.length) idx=(idx-1)%(this.palette.length-1)+1 
+                ctx.fillStyle = this.palette[idx]
                 ctx.beginPath()
                 const pix_x = this.off_x + this.pix_x*x
                 const pix_y = this.off_y + this.pix_y*y

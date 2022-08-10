@@ -24,7 +24,7 @@ class Connection {
     recv(msg) {
         console.log(`${this.id} message: ${msg}`)
         const payload = JSON.parse(msg)
-        this.listeners.forEach(cb => cb(payload))
+        this.listeners.forEach(cb => cb(this, payload))
     }
 
     ping() {
@@ -44,6 +44,7 @@ class Connection {
         clearInterval(this.heart_beat)
         this.ws.close()
         console.log(`${this.id} CONNECTION CLOSED`)
+        this.listeners.forEach(cb => cb(this, false))
     }
 }
 
