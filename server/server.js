@@ -3,7 +3,7 @@ const express = require('express')
 const morgan = require('morgan')
 const ws = require('ws')
 const websockets = require('./websockets')
-const Hall = require('./main').Hall
+const Hall = require('./hall').Hall
 
 let hall = new Hall()
 

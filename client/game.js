@@ -30,92 +30,110 @@ class Board {
 
 }
 
+class Player {
+    constructor(name, id) {
+        this.id = id
+        this.name = name
+        this.died = true
+        this.x = 0
+        this.y = 0
+        this.d = 0
+        this.quit = false
+    }
+
+    get_state() {
+        return [this.died, this.x, this.y, this.d, this.quit]
+    }
+
+    set_state(state) {
+        this.died = state[0]
+        this.x = state[1]
+        this.y = state[2]
+        this.d = state[3]
+        this.quit = state[4]
+    }
+}
+
 class Game {
     constructor(options) {
         console.log(`create game ${JSON.stringify(options)}`)
-        this.options = options
         let width = options['width'] || 30
         let height = options['height'] || 20
         this.board = new Board(width, height)
         this.players = []
-        this.options.n_players = 0
         this.frame_count = 0
     }    
     
-    add_player(player) {
-        // [x, y, d, name]
-        // d = -2: quit
-        // d = -1: died
-        // d = 0,1,2,3: moving in direction E, S, W, N
-        // d = 4: spawned 
-        console.log(`game ${this.options.id} add_player ${JSON.stringify(player)}`)
-        this.players.push(player)
-        if (player[2] !== -2) this.options.n_players ++
-        console.log(`game options: ${JSON.stringify(this.options)}`)
-        return this.players.length-1
+    add_player(name) {
+        const id = this.players.length
+        this.players.push(new Player(name, id))
+        return id
     }
 
     remove_player(player_id) {
-        console.log(`game ${this.options.id} remove_player ${player_id}`)
-        console.log(`players ${JSON.stringify(this.players)}`)
-        this.players[player_id][2] = -2
-        this.options.n_players --
+        this.players[player_id].quit = true
     }
 
     command(cmd) {
         const player_id = cmd[0]
         const verb = cmd[1] 
         let player = this.players[player_id]
-        if (player[2] < 0) {
-            // not spawned
-            if (verb == "spawn") {
-                [player[0], player[1], player[2]] = [cmd[2], cmd[3], 4]
-            }
-        } else if (player[2] < 4) {
-            // moving
-            if (verb == "right") {
-                player[2]++
-                if (player[2]==4) player[2]=0
-            } else if (verb == "left") {
-                player[2]--
-                if (player[2]<0) player[2]=3
-            }
+        if (verb == "right") {
+            player.d++
+            if (player.d==4) player.d=0
+            return
+        } 
+        if (verb == "left") {
+            player.d--
+            if (player.d<0) player.d=3
+            return
+        } 
+        if (verb == "spawn") {
+            player.died = false
+            player.x = cmd[2]
+            player.y = cmd[3]
+            player.d = 4
+            return
         }
+        if (verb == "quit") {
+            if (!player.quit) {
+                player.died = true
+                player.quit = true
+            }
+            return
+        }
+        throw(`invalid command ${JSON.stringify(cmd)}`)
     }
 
     update(commands) {
         this.frame_count ++
         commands.forEach(payload => this.command(payload))
         let died = []
-        this.players = this.players.map(([x, y, d], player_id) => {
-            if (d<0) {
-                // -1 not spawned
-                // -2 quit              
-            } else if (d<4) {
+        this.players.forEach(player => {
+            if (player.quit) return
+            if (player.died) return
+            if (player.d < 4) {
                 // moving
-                x += [1, 0, -1, 0][d]
-                y += [0, 1, 0, -1][d]
-                if (x<0) x = this.board.width-1
-                else if (x>=this.board.width) x = 0
-                if (y<0) y = this.board.height-1
-                else if (y>=this.board.height) y = 0
-            } else if (d==4) {
+                player.x += [1, 0, -1, 0][player.d]
+                player.y += [0, 1, 0, -1][player.d]
+                if (player.x<0) player.x = this.board.width-1
+                else if (player.x>=this.board.width) player.x = 0
+                if (player.y<0) player.y = this.board.height-1
+                else if (player.y>=this.board.height) player.y = 0
+            } else {
                 // just spawned
-                d = 0
+                player.d = 0
             }
-            if (d>=0) {
-                if (this.board.get_pix(x, y)) {
-                    // die
-                    died.push(player_id)
-                    console.log(`${player_id} died`)
-                    return [0, 0, -1]
-                } else {
-                    this.board.set_pix(x, y, player_id+1)
-                }
+            if (this.board.get_pix(player.x, player.y)) {
+                // die
+                died.push(player)
+                console.log(`${player.id} died`)
+                player.died = true
+            } else {
+                this.board.set_pix(player.x, player.y, player.id+1)
             }
-            return [x, y, d]
         })
-        died.forEach(player_id => this.board.clear_color(player_id+1))
+        died.forEach(player => this.board.clear_color(player.id + 1))
     }
 }
 

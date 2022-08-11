@@ -24,12 +24,12 @@ class Connection {
     }
 
     send(payload) {
-        console.log(`send to ${this.id} msg ${JSON.stringify(payload)}`)
+        console.log(`   send to ${this.id} msg ${JSON.stringify(payload)}`)
         this.ws.send(JSON.stringify(payload))
     }
 
     recv(msg) {
-        console.log(`${this.id} message: ${msg}`)
+        console.log(`   ${this.id} message: ${msg}`)
         let cmd, payload
         try {
             payload = JSON.parse(msg)
@@ -39,7 +39,7 @@ class Connection {
             return
         }
         if (cmd === 'hello') {
-            console.log(`hello from connection ${this.id}`)
+            console.log(`   hello from connection ${this.id}`)
             return // listeners are not interested
         }
         this.listeners.forEach(cb => cb(this, payload))
@@ -48,9 +48,9 @@ class Connection {
     ping() {
         if (this.alive) {
             this.alive = false
-            console.log(`${this.id} PING`)
+            console.log(`   ${this.id} PING`)
             this.ws.ping(() => {
-                console.log(`${this.id} PONG`)
+                console.log(`   ${this.id} PONG`)
                 this.alive = true
             });
         } else {
@@ -61,7 +61,7 @@ class Connection {
     close() {
         clearInterval(this.heart_beat)
         this.ws.close()
-        console.log(`${this.id} CONNECTION CLOSED`)
+        console.log(`   ${this.id} CONNECTION CLOSED`)
         this.listeners.forEach(cb => cb(this, false))
     }
 }

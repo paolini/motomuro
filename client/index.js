@@ -11,7 +11,7 @@ class Main {
             this.send(["set_name", $("name_input").value])
         })
         $("game_button").onclick = (evt => {
-            this.send(["new_room", $("game_input").value, 100, 100, 20])
+            this.send(["new_room", $("game_input").value, 100, 100, 1])
         })
         this.socket = null
         this.connect()
@@ -34,8 +34,8 @@ class Main {
             } else if (evt.key == "ArrowDown") {
                 if (this.game.players[0][2]==0) this.send(["cmd", "right"])
                 if (this.game.players[0][2]==2) this.send(["cmd", "left"])                
-            } else if (evt.key == "s") {
-                this.send(["cmd", "spawn"])
+            } else if (evt.key == "q") {
+                this.send(["cmd", "quit"])
             } else {
                 console.log(`key ${evt.key} pressed`)
             }
@@ -58,6 +58,7 @@ class Main {
         })
 
         this.socket.addEventListener('close', event => {
+            this.room = null
             $connection.textContent = "disconnected"
             setTimeout(() => this.connect(), 5000)
         })
@@ -88,7 +89,9 @@ class Main {
             this.stop()
         } else if (cmd === "board") {
             this.game.frame_count = payload[1]
-            this.game.players = payload[2]
+            this.game.players.forEach((player,id) => {
+                player.set_state(payload[2][id])
+            })
             this.game.board.buffer = payload[3]
             this.draw()
         } else if (cmd === "add_player") {
@@ -101,27 +104,20 @@ class Main {
             this.update_hall()
         } else if (cmd === "room_ready") {
             this.send(["join", payload[1]])
-        } else if (cmd === "game") {
-            const options = payload[1]
-            this.player_id = payload[2]
-            const players = payload[3]
-            this.game = new Game(options)
-            players.forEach(player => this.game.add_player(player))    
+        } else if (cmd === "join") {
+            this.room = payload[1]
         } else {
             console.error(`unknown command from server: ${cmd}`)
         }
     }
 
-    stop() {
-    }
-
     start(payload) {
-        const $canvas = $("canvas")
+        console.log(`start`)
         this.player_id = payload[1]
-        console.log(`start ${this.player_id}`)
-        this.game = new Game({n_players: payload[2], width: payload[3], height: payload[4]})
+        this.game = new Game(this.room)
         const width = this.game.board.width
         const height = this.game.board.height
+        const $canvas = $("canvas")
         this.pix_x = Math.floor(Math.min(
             $canvas.width / width, 
             $canvas.height / height))
@@ -167,28 +163,29 @@ class Main {
         this.rooms.forEach(room => {
             let $li = $new("li")
             $ul.appendChild($li)
-            $li.textContent = `${room[1].name} (${room[1].n_players} players) `
+            $li.textContent = `${room.name} (${room.n_players} players) `
 
             let $button = $new("button")
             $li.appendChild($button)
-            if (this.game && room[1].id === this.game.options.id) {
+            if (this.room && this.room.id === room.id) {
                 // ci sono entrato
-                $button.textContent = "play!"
-                $button.onclick = evt => {
-                    this.send(["start"])
-                }
-                $button = $new("button")
-                $li.appendChild($button)
                 $button.textContent = "leave"
                 $button.onclick = evt => {
                     this.send(["leave"])
                     this.game = null
                     this.player_id = -1
                 }
+                
+                $button = $new("button")
+                $button.textContent = "play!"
+                $button.onclick = evt => {
+                    this.send(["play"])
+                }
+                $li.appendChild($button)
             } else {
                 $button.textContent = "join"
                 $button.onclick = evt => {
-                    this.send(["join", room[1].id])
+                    this.send(["join", room.id])
                 }
             }
         })
