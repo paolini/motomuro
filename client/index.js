@@ -240,6 +240,3 @@ class Main {
 }
 
 let main = new Main()
-setInterval(() => {
-    if (main.socket) main.send(['hello'])
-}, 10000)

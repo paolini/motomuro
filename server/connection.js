@@ -11,7 +11,7 @@ class Connection {
         this.ws.on('message', msg => this.recv(msg))
         this.ws.on('close', () => this.close())
         this.send(["hello", this.id])
-        if (false) {
+        if (true) {
             this.heart_beat = setInterval(() => this.ping(), 10000)
         }
     }
@@ -51,7 +51,7 @@ class Connection {
             this.alive = false
             if (DEBUG) console.log(`   ${this.id} PING`)
             this.ws.ping(() => {
-                if (DEBUG) console.log(`   ${this.id} PONG`)
+                console.log(`connection ${this.id} alive`)
                 this.alive = true
             });
         } else {
@@ -62,7 +62,7 @@ class Connection {
     close() {
         clearInterval(this.heart_beat)
         this.ws.close()
-        if (DEBUG) console.log(`   ${this.id} CONNECTION CLOSED`)
+        if (DEBUG) console.log(`   ${this.id} connection closed`)
         this.listeners.forEach(cb => cb(this, false))
     }
 }
