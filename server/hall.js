@@ -9,7 +9,6 @@ class Room {
         this.fps = options.fps || 20
         this.name = options.name || "<room>"
         this.game = null
-        this.timer = null
         this.commands = []
     }
 
@@ -41,6 +40,10 @@ class Room {
                     }
                 return
                 }
+                if (key === "done") {
+                    connection.frame_delay = this.game.frame_count - payload[2]
+                    return
+                }
             }
         } catch(err) {
             if (DEBUG) throw(err)
@@ -52,15 +55,44 @@ class Room {
 
     send_all(payload) {
         this.hall.connections.forEach(connection => {
-            if (connection.room && connection.room === this) connection.send(payload)
+            if (connection.room && connection.room === this) {
+                connection.send(payload)
+            }
         })
     }
 
     start() {
+        let timer = null
+
+        let update = () => {
+            this.hall.connections.forEach(connection => {
+                if (connection.room && connection.room === this) {
+                    connection.send(["update", this.frame_count, 0*connection.frame_delay, this.commands])
+                }
+            })
+            this.game.update(this.commands)
+            this.commands = []
+            for (let [player_id, player] of this.game.players.entries()) {
+                if (player.died) {
+                    this.commands.push([player_id, "spawn", 
+                        Math.floor(Math.random()*this.game.board.width),
+                        Math.floor(Math.random()*this.game.board.height)])
+                }
+            }
+            this.frame_count ++
+            if (this.frame_count % this.fps === 0) {
+                console.log(`room ${this.id} (${this.name}), ${this.game.players.size} players, frames ${this.frame_count}`)
+            }
+            if (this.game.players.size === 0) {
+                clearInterval(timer)
+                this.game = null
+                this.hall.send_rooms()
+                console.log(`game in room ${this.id} (${this.name}) terminated`)
+            }
+        }
+
         this.game = new Game(this.options)
-        this.timer = setInterval(() => {
-            this.update()
-        }, 1000 / this.fps)
+        timer = setInterval(update, 1000 / this.fps)
         this.frame_count = 0
         this.commands = []
         this.hall.connections.forEach(connection => {
@@ -73,6 +105,7 @@ class Room {
     start_player(connection) {
         connection.player_id = this.game.add_player(connection.player_name)
         connection.send(['start', connection.player_id])
+        connection.frame_delay = 0
         console.log(`player ${connection.id} (${connection.player_name}) started game ${this.id} as player ${connection.player_id}`)
     }
 
@@ -80,20 +113,6 @@ class Room {
         this.send_all(["game_players", this.game.get_players()])
     }
 
-    update() {
-        const payload = ["update", this.frame_count, this.commands]
-        this.commands = []
-        this.send_all(payload)
-        this.game.update(payload[2])
-        for (let [player_id, player] of this.game.players.entries()) {
-            if (player.died) {
-                this.commands.push([player_id, "spawn", 
-                    Math.floor(Math.random()*this.game.board.width),
-                    Math.floor(Math.random()*this.game.board.height)])
-            }
-        }
-        this.frame_count ++
-    }
 
 }
 

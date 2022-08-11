@@ -20,7 +20,7 @@ class Main {
             this.send(["set_name", $("name_input").value])
         })
         $("room_button").onclick = (evt => {
-            this.send(["new_room", $("room_input").value, 100, 100, 15])
+            this.send(["new_room", $("room_input").value, 100, 100, 10])
         })
         this.socket = null
         this.connect()
@@ -99,8 +99,10 @@ class Main {
             console.log("server said hello")
         } else if (cmd === "update") {
             if (this.game) {
-                this.game.update(payload[2])
-                this.draw()
+                this.game.update(payload[3])
+                const frame_delay = payload[2]
+                if (frame_delay === 0) this.draw()
+                this.send(['cmd', 'done', this.game.frame_count])
             }
         } else if (cmd === "start") {
             this.start(payload)
@@ -172,6 +174,7 @@ class Main {
                 ctx.fill()
             }
         }
+        $("frame_span").textContent = `${this.game.frame_count} ${this.socket.bufferedAmount} ${this.socket.readyState}`
         const $div = $("score_div")
         $div.replaceChildren()
         for(let player of this.game.players.values()) {
@@ -237,4 +240,4 @@ class Main {
     }
 }
 
-new Main()
+let main = new Main()

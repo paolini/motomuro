@@ -50,7 +50,6 @@ class Game {
         this.players = new Map()
         this.frame_count = 0
         this.next_id = 1
-        this.on_quit = (() => null)
     }    
     
     add_player(name) {
@@ -114,7 +113,6 @@ class Game {
         }
         if (verb == "quit") {
             this.remove_player(player_id)
-            this.on_quit(player_id)
             return
         }
         throw(`invalid command ${JSON.stringify(cmd)}`)
@@ -142,7 +140,7 @@ class Game {
             if (pix_id !== 0) {
                 // die
                 if (pix_id !== player_id) {
-                    this.players.get(pix_id).score += 1
+                    this.players.get(pix_id).score += 10
                 }
                 player.score -= 1
                 died_ids.push(player_id)
