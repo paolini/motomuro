@@ -92,13 +92,10 @@ class Main {
         } else if (cmd === "stop") {
             this.stop()
         } else if (cmd === "board") {
-            this.game.frame_count = payload[1]
-            this.game.next_id = payload[2]
-            this.game.set_players(payload[3])
-            this.game.board.buffer = payload[4]
+            this.game.set_board(payload[1])
             this.draw()
-        } else if (cmd === "add_player") {
-            this.game.add_player(payload[1])
+        } else if (cmd === "game_players") {
+            this.game.set_players(payload[1])
         } else if (cmd === "players") {
             this.players = payload[1]
             this.update_hall()
@@ -109,6 +106,12 @@ class Main {
             this.send(["join", payload[1]])
         } else if (cmd === "join") {
             this.room = payload[1]
+            console.log(`join room`)
+        } else if (cmd === "quit") {
+            this.game = null
+            this.player_id = null
+            this.room = null
+            console.log(`quit game`)
         } else {
             console.error(`unknown command from server: ${cmd}`)
         }

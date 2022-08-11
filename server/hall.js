@@ -21,7 +21,6 @@ class Room {
             'height': this.options.height, 
             'fps': this.fps,
             'n_players': this.hall.connections.filter(c => c.room === this).length,
-            'running': (this.game !== null)
          }
     }
 
@@ -36,6 +35,7 @@ class Room {
                     if (key === "quit") {
                         connection.room = null
                         connection.player_id = -1
+                        connection.send(["quit"])
                         this.hall.send_rooms()
                     }
                 return
@@ -49,11 +49,9 @@ class Room {
         if (DEBUG) throw("halting for DEBUG")
     }
 
-    send_all_running(payload) {
-//        console.log(`sendAll room ${this.id} msg ${JSON.stringify(payload)}`)
+    send_all(payload) {
         this.hall.connections.forEach(connection => {
-            if (connection.room && connection.room.game 
-                && connection.room === this) connection.send(payload)
+            if (connection.room && connection.room === this) connection.send(payload)
         })
     }
 
@@ -68,32 +66,23 @@ class Room {
             if (connection.room !== this) return
             this.start_player(connection)
         })
+        this.send_players()
     }
-
+    
     start_player(connection) {
         connection.player_id = this.game.add_player(connection.player_name)
         connection.send(['start', connection.player_id])
-
-        // add players already in game
-        for(let player of this.game.players.values()) {
-            connection.send(['add_player', player.name])
-        }
-
         console.log(`player ${connection.id} (${connection.player_name}) started game ${this.id} as player ${connection.player_id}`)
+    }
 
-        // notify other players
-        this.hall.connections.forEach(c => {
-            if (c.room !== this) return // not in this room
-            if (c.player_id < 0) return // not yet added to play
-            if (c === connection) return // already notified
-            c.send(['add_player', connection.player_name])
-        })
+    send_players() {
+        this.send_all(["game_players", this.game.get_players()])
     }
 
     update() {
         const payload = ["update", this.frame_count, this.commands]
         this.commands = []
-        this.send_all_running(payload)
+        this.send_all(payload)
         this.game.update(payload[2])
         for (let [player_id, player] of this.game.players.entries()) {
             if (player.died) {
@@ -187,12 +176,8 @@ class Hall {
                 console.log(`player ${connection.id} (${connection.player_name}) joined room ${room.id} (${room.name})`)
                 if (room.game) {
                     room.start_player(connection)
-                    connection.send(['board', 
-                        room.game.frame_count,
-                        room.game.next_id, 
-                        room.game.get_players(),
-                        room.game.board.buffer
-                    ])
+                    room.send_players()
+                    connection.send(['board', room.game.get_board()])
                 }
                 this.send_rooms()
                 return

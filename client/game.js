@@ -30,26 +30,14 @@ class Board {
 
 }
 
-class Player {
-    constructor(name, id) {
-        this.id = id
-        this.name = name
-        this.died = true
-        this.x = 0
-        this.y = 0
-        this.d = 0
-    }
-
-    get_state() {
-        return [this.died, this.x, this.y, this.d]
-    }
-
-    set_state(state) {
-        this.died = state[0]
-        this.x = state[1]
-        this.y = state[2]
-        this.d = state[3]
-        this.quit = state[4]
+function new_player(options) {
+    return {
+        name: "<anonymous>",
+        died: true,
+        x: 0,
+        y: 0,
+        d: 0,
+        ...options
     }
 }
 
@@ -62,24 +50,40 @@ class Game {
         this.players = new Map()
         this.frame_count = 0
         this.next_id = 1
+        this.on_quit = (() => null)
     }    
     
     add_player(name) {
         const player_id = this.next_id++
-        this.players.set(player_id, new Player(name, player_id))
+        this.players.set(player_id, new_player({name, player_id}))
         return player_id
     }
 
     get_players() {
         // serialize
-        return Array.from(this.players.entries()).map(([id,player]) => [id, player.get_state()])
+        return Array.from(this.players.entries())
     }
 
     set_players(state) {
         // unserialize
-        state.forEach(([id, player_state]) => {
-            this.players.get(id).set_state(player_state)
+        this.players = new Map()
+        state.forEach(([id, player]) => {
+            this.players.set(id, player)
         })
+    }
+
+    get_board() {
+        return [this.frame_count,
+            this.next_id,
+            this.get_players(),
+            this.board.buffer]
+    }
+
+    set_board(payload) {
+        this.frame_count = payload[0]
+        this.next_id = payload[1]
+        this.set_players(payload[2])
+        this.board.buffer = payload[3]
     }
 
     remove_player(player_id) {
@@ -110,6 +114,7 @@ class Game {
         }
         if (verb == "quit") {
             this.remove_player(player_id)
+            this.on_quit(player_id)
             return
         }
         throw(`invalid command ${JSON.stringify(cmd)}`)
