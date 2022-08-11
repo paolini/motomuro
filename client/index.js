@@ -75,6 +75,7 @@ class Main {
             $connection.textContent = "disconnected"
             this.game = null
             hide($("game_div"))
+            show($("name_div"))
             this.players = []
             this.rooms = []
             this.update_hall
@@ -129,6 +130,7 @@ class Main {
             this.player_id = null
             this.room = null
             hide($("game_div"))
+            show($("name_div"))
             console.log(`quit game`)
         } else {
             console.error(`unknown command from server: ${cmd}`)
@@ -139,6 +141,8 @@ class Main {
         console.log(`start`)
         this.player_id = payload[1]
         this.game = new Game(this.room)
+        this.update_hall()
+        hide($("name_div"))
         const width = this.game.board.width
         const height = this.game.board.height
         const $canvas = $("canvas")
@@ -173,9 +177,10 @@ class Main {
                 ctx.fill()
             }
         }
-        $("frame_span").textContent = `${this.game.frame_count} ${this.socket.bufferedAmount} ${this.socket.readyState}`
+        // $("frame_span").textContent = `${this.game.frame_count} ${this.socket.bufferedAmount} ${this.socket.readyState}`
         const $div = $("score_div")
         $div.replaceChildren()
+        $div.textContent = "Score: "
         for(let player of this.game.players.values()) {
             let $li = $new("li")
             $div.appendChild($li)
