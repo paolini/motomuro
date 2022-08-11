@@ -6,6 +6,9 @@ const websockets = require('./websockets')
 const Hall = require('./hall').Hall
 
 let hall = new Hall()
+setInterval(() => {
+  hall.cleaning()
+}, 60000)
 
 const app = express();
 

@@ -10,6 +10,16 @@ class Room {
         this.name = options.name || "<room>"
         this.game = null
         this.commands = []
+        this.last_used = 0
+        this.touch()
+    }
+
+    touch() {
+        this.last_used = (new Date()).getTime()
+    }
+
+    unused_time_ms() {
+        return (new Date()).getTime() - this.last_used
     }
 
     info() {
@@ -65,6 +75,7 @@ class Room {
         let timer = null
 
         let update = () => {
+            this.touch()
             this.hall.connections.forEach(connection => {
                 if (connection.room && connection.room === this) {
                     connection.send(["update", this.frame_count, 0*connection.frame_delay, this.commands])
@@ -106,14 +117,12 @@ class Room {
         connection.player_id = this.game.add_player(connection.player_name)
         connection.send(['start', connection.player_id])
         connection.frame_delay = 0
-        console.log(`player ${connection.id} (${connection.player_name}) started game ${this.id} as player ${connection.player_id}`)
+        console.log(`connection ${connection.id} (${connection.player_name}) started game ${this.id} as player ${connection.player_id}`)
     }
 
     send_players() {
         this.send_all(["game_players", this.game.get_players()])
     }
-
-
 }
 
 class Hall {
@@ -121,6 +130,11 @@ class Hall {
         this.connections = []
         this.rooms = []
         this.next_room_id = 0
+    }
+
+    cleaning() {
+        this.rooms = this.rooms.filter(room => room.unused_time_ms()<60000)
+        this.send_rooms()
     }
 
     add_connection(connection) {
@@ -190,6 +204,7 @@ class Hall {
             if (cmd === "join") {
                 let id = parseInt(payload[1])
                 let room = this.rooms.find(room => room.options.id === id)
+                room.touch()
                 connection.room = room
                 connection.player_id = -1
                 connection.send(["join", room.info()])
@@ -205,6 +220,7 @@ class Hall {
             if (cmd === "leave") {
                 if (connection.room) {
                     const room = connection.room
+                    room.touch()
                     connection.room = null
                     connection.player_id = -1
                     this.send_rooms()

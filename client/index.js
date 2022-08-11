@@ -102,12 +102,12 @@ class Main {
                 this.game.update(payload[3])
                 const frame_delay = payload[2]
                 if (frame_delay === 0) this.draw()
-                this.send(['cmd', 'done', this.game.frame_count])
+                if (this.game.players.size>0) {
+                    this.send(['cmd', 'done', this.game.frame_count])
+                }
             }
         } else if (cmd === "start") {
             this.start(payload)
-        } else if (cmd === "stop") {
-            this.stop()
         } else if (cmd === "board") {
             this.game.set_board(payload[1])
             this.draw()
@@ -211,7 +211,7 @@ class Main {
             if (this.room && this.room.id === room.id) {
                 // ci sono dentro
                 add_button($li, "leave", () => {
-                    this.send["leave"],
+                    this.send(["leave"]),
                     this.room = null
                     })                    
                 add_button($li, "play", () => {this.send(["play"])})
