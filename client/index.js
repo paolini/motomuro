@@ -20,7 +20,7 @@ class Main {
             this.send(["set_name", $("name_input").value])
         })
         $("room_button").onclick = (evt => {
-            this.send(["new_room", $("room_input").value, 100, 100, 1])
+            this.send(["new_room", $("room_input").value, 100, 100, 15])
         })
         this.socket = null
         this.connect()
@@ -74,6 +74,11 @@ class Main {
         this.socket.addEventListener('close', event => {
             this.room = null
             $connection.textContent = "disconnected"
+            this.game = null
+            hide($("game_div"))
+            this.players = []
+            this.rooms = []
+            this.update_hall
             setTimeout(() => this.connect(), 5000)
         })
 
@@ -167,7 +172,15 @@ class Main {
                 ctx.fill()
             }
         }
+        const $div = $("score_div")
+        $div.replaceChildren()
+        for(let player of this.game.players.values()) {
+            let $li = $new("li")
+            $div.appendChild($li)
+            $li.textContent=`${player.name}: ${player.score}`
+        }
     }
+
 
     update_hall() {
         const $hall = $("hall")

@@ -37,13 +37,13 @@ function new_player(options) {
         x: 0,
         y: 0,
         d: 0,
+        score: 0,
         ...options
     }
 }
 
 class Game {
     constructor(options) {
-        console.log(`create game ${JSON.stringify(options)}`)
         let width = options['width'] || 30
         let height = options['height'] || 20
         this.board = new Board(width, height)
@@ -138,10 +138,14 @@ class Game {
                 // just spawned
                 player.d = 0
             }
-            if (this.board.get_pix(player.x, player.y)) {
+            const pix_id = this.board.get_pix(player.x, player.y)
+            if (pix_id !== 0) {
                 // die
+                if (pix_id !== player_id) {
+                    this.players.get(pix_id).score += 1
+                }
+                player.score -= 1
                 died_ids.push(player_id)
-                console.log(`${player_id} died`)
                 player.died = true
             } else {
                 this.board.set_pix(player.x, player.y, player_id)
