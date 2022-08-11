@@ -3,15 +3,24 @@
 const $ = id => document.getElementById(id)
 const $new = name => document.createElement(name)
 
+function hide($el) {
+    $el.style.display = "none"
+}
+
+function show($el) {
+    $el.style.display = "block"
+}
+
 class Main {
     constructor() {
         this.game = null
         this.player_id = -1
+        hide($("game_div"))
         $("name_button").onclick = (evt => {
             this.send(["set_name", $("name_input").value])
         })
-        $("game_button").onclick = (evt => {
-            this.send(["new_room", $("game_input").value, 100, 100, 1])
+        $("room_button").onclick = (evt => {
+            this.send(["new_room", $("room_input").value, 100, 100, 1])
         })
         this.socket = null
         this.connect()
@@ -107,11 +116,13 @@ class Main {
             this.send(["join", payload[1]])
         } else if (cmd === "join") {
             this.room = payload[1]
+            $("room_input").value = this.room.name
             console.log(`join room`)
         } else if (cmd === "quit") {
             this.game = null
             this.player_id = null
             this.room = null
+            hide($("game_div"))
             console.log(`quit game`)
         } else {
             console.error(`unknown command from server: ${cmd}`)
@@ -135,6 +146,7 @@ class Main {
         this.palette = ["black", "white", "red", "green"]
         this.game.board.clear(0)
         this.draw()
+        show($("game_div"))
     }
     
     draw() {

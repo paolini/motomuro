@@ -3,17 +3,19 @@
 <p>
     <span id="connection">loading...</span>
 </p>
+<div id="game_div">
+    <canvas id="canvas" width=640 height=480></canvas>
+    <p>Press &lt;Q&gt; to quit, &lt;O&gt; left, &lt;P&gt; right</p>
+</div>
 <div>
     <input placeholder="your name" id="name_input" size=10 />
     <button id="name_button">set name</button>
     <br />
-    <input placeholder="game name" id="game_input" size=10 />
-    <button id="game_button">new game</button>
+    <input placeholder="game name" id="room_input" size=10 />
+    <button id="room_button">new game</button>
 </div>
 <div id="hall">
 </div>
-<canvas id="canvas" width=640 height=480></canvas>
-<p>Press &lt;S&gt; to spawn, &lt;O&gt; left, &lt;P&gt; right</p>
 <p><a href='http://github.com/paolini/motomuro'>source</a></p>
 <script>exports = {} // fake import/export</script>
 <script src="game.js"></script>
