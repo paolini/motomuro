@@ -21,6 +21,7 @@ class Room {
             'height': this.options.height, 
             'fps': this.fps,
             'n_players': this.hall.connections.filter(c => c.room === this).length,
+            'running': (this.game !== null)
          }
     }
 

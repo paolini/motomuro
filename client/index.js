@@ -20,6 +20,7 @@ class Main {
 
         document.onkeydown = evt => {
             if (!this.socket) return
+            if (!this.game) return
             if (evt.key == "o") this.send(["cmd", "left"])
             else if (evt.key == "p") this.send(["cmd", "right"])
             else if (evt.key == "ArrowLeft") {
@@ -159,44 +160,41 @@ class Main {
     update_hall() {
         const $hall = $("hall")
         $hall.replaceChildren()
-        let $p, $ul
-        
+        if (this.game) return
+
+        function add_button($container, name, cb) {
+            let $button = $new("button")
+            $button.textContent = name
+            $button.onclick = cb
+            $container.appendChild($button)
+        }
+
+        let $p, $ul, $li        
         $p = $new("p")
         $hall.appendChild($p)
         $p.textContent = "Games:"
         $ul = $new("ul")
         $hall.appendChild($ul)
         this.rooms.forEach(room => {
-            let $li = $new("li")
+            $li = $new("li")
             $ul.appendChild($li)
             $li.textContent = `${room.name} (${room.n_players} players) `
 
-            let $button = $new("button")
-            $li.appendChild($button)
             if (this.room && this.room.id === room.id) {
-                // ci sono entrato
-                $button.textContent = "leave"
-                $button.onclick = evt => {
-                    this.send(["leave"])
-                    this.game = null
-                    this.player_id = -1
-                }
-                
-                $button = $new("button")
-                $button.textContent = "play!"
-                $button.onclick = evt => {
-                    this.send(["play"])
-                }
-                $li.appendChild($button)
+                // ci sono dentro
+                add_button($li, "leave", () => {
+                    this.send["leave"],
+                    this.room = null
+                    })                    
+                add_button($li, "play", () => {this.send(["play"])})
             } else {
-                $button.textContent = "join"
-                $button.onclick = evt => {
-                    this.send(["join", room.id])
-                }
+                // non sono in questa stanza
+                add_button($li, room.running ? "play" : "join", () => {this.send(["join", room.id])})
             }
         })
+
         if (this.rooms.length === 0) {
-            let $li = $new("li")
+            $li = $new("li")
             $ul.appendChild($li)
             $li.textContent = "no game yet... please create one!"
         }
@@ -207,7 +205,7 @@ class Main {
         $ul = $new("ul")
         $hall.appendChild($ul)
         this.players.forEach(player => {
-            let $li = $new("li")
+            $li = $new("li")
             $ul.appendChild($li)
             $li.textContent = player[1]
         })
