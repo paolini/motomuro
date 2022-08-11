@@ -11,6 +11,27 @@ function show($el) {
     $el.style.display = "block"
 }
 
+/* FULL SCREEN?
+
+$(window).bind("resize", function(){
+    var w = $(window).width();
+    var h = $(window).height();
+
+    $("#mycanvas").css("width", w + "px");
+    $("#mycanvas").css("height", h + "px"); 
+});
+
+//using HTML5 for fullscreen (only newest Chrome + FF)
+$("#mycanvas")[0].webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); //Chrome
+$("#mycanvas")[0].mozRequestFullScreen(); //Firefox
+
+//...
+
+//now i want to cancel fullscreen
+document.webkitCancelFullScreen(); //Chrome
+document.mozCancelFullScreen(); //Firefox
+*/
+
 class Main {
     constructor() {
         this.game = null
@@ -22,10 +43,24 @@ class Main {
         $("room_button").onclick = (evt => {
             this.send(["new_room", $("room_input").value, 100, 100, 10])
         })
+        const $canvas = $("canvas")
+        $("full_screen_button").onclick = (evt => {
+            if ($canvas.webkitRequestFullScreen) $canvas.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); //Chrome
+            if ($canvas.mozRequestFullScreen) $canvas.mozRequestFullScreen(); //Firefox
+        })
+        $('canvas').onmousedown = 
+        $('canvas').ontouchstart = 
+        (evt) => {
+            if (2*evt.offsetX < $('canvas').width) {
+                this.send(["cmd", "left"])
+            } else {
+                this.send(["cmd", "right"])
+            }
+        }
         this.socket = null
         this.connect()
         this.players = []
-        this.rooms = []
+        this.rooms = []        
 
         document.onkeydown = evt => {
             if (!this.socket) return
@@ -153,7 +188,7 @@ class Main {
         this.off_x = ($canvas.width - this.pix_x*width) / 2
         this.off_y = ($canvas.height - this.pix_y*height) / 2
         this.ctx = $canvas.getContext("2d")
-        this.palette = ["black", "white", "red", "green"]
+        this.palette = ["#111", "white", "red", "green", "blue", "magenta", "orange"]
         this.game.board.clear(0)
         this.draw()
         show($("game_div"))
