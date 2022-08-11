@@ -67,7 +67,6 @@ class Main {
 
         // Connection opened
         this.socket.addEventListener('open', event => {
-            this.send(['hello']);
             $connection.textContent = "connected"
         })
 
@@ -241,3 +240,6 @@ class Main {
 }
 
 let main = new Main()
+setInterval(() => {
+    if (main.socket) main.send(['hello'])
+}, 10000)

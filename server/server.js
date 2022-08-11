@@ -2,7 +2,7 @@ const path = require('path')
 const express = require('express')
 const morgan = require('morgan')
 const ws = require('ws')
-const websockets = require('./websockets')
+const Connection = require('./connection').Connection
 const Hall = require('./hall').Hall
 
 let hall = new Hall()
@@ -14,7 +14,7 @@ const app = express();
 
 const wsServer = new ws.Server({ noServer: true });
 wsServer.on('connection', (ws, req, client) => {
-  hall.add_connection(new websockets.Connection(ws, req, client))
+  hall.add_connection(new Connection(ws, req, client))
 });
 
 app.use(morgan('tiny'));
