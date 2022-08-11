@@ -75,9 +75,9 @@ class Room {
         connection.send(['start', connection.player_id])
 
         // add players already in game
-        this.game.players.forEach((player, id) => {
+        for(let player of this.game.players.values()) {
             connection.send(['add_player', player.name])
-        })
+        }
 
         console.log(`player ${connection.id} (${connection.player_name}) started game ${this.id} as player ${connection.player_id}`)
 
@@ -95,13 +95,13 @@ class Room {
         this.commands = []
         this.send_all_running(payload)
         this.game.update(payload[2])
-        this.game.players.forEach(player => {
-            if (player.died && !player.quit) {
-                this.commands.push([player.id, "spawn", 
+        for (let [player_id, player] of this.game.players.entries()) {
+            if (player.died) {
+                this.commands.push([player_id, "spawn", 
                     Math.floor(Math.random()*this.game.board.width),
                     Math.floor(Math.random()*this.game.board.height)])
             }
-        })
+        }
         this.frame_count ++
     }
 
@@ -188,8 +188,9 @@ class Hall {
                 if (room.game) {
                     room.start_player(connection)
                     connection.send(['board', 
-                        room.game.frame_count, 
-                        room.game.players.map(player => player.get_state()),
+                        room.game.frame_count,
+                        room.game.next_id, 
+                        room.game.get_players(),
                         room.game.board.buffer
                     ])
                 }

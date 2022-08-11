@@ -38,11 +38,10 @@ class Player {
         this.x = 0
         this.y = 0
         this.d = 0
-        this.quit = false
     }
 
     get_state() {
-        return [this.died, this.x, this.y, this.d, this.quit]
+        return [this.died, this.x, this.y, this.d]
     }
 
     set_state(state) {
@@ -60,24 +59,38 @@ class Game {
         let width = options['width'] || 30
         let height = options['height'] || 20
         this.board = new Board(width, height)
-        this.players = []
+        this.players = new Map()
         this.frame_count = 0
+        this.next_id = 1
     }    
     
     add_player(name) {
-        const id = this.players.length
-        this.players.push(new Player(name, id))
-        return id
+        const player_id = this.next_id++
+        this.players.set(player_id, new Player(name, player_id))
+        return player_id
+    }
+
+    get_players() {
+        // serialize
+        return Array.from(this.players.entries()).map(([id,player]) => [id, player.get_state()])
+    }
+
+    set_players(state) {
+        // unserialize
+        state.forEach(([id, player_state]) => {
+            this.players.get(id).set_state(player_state)
+        })
     }
 
     remove_player(player_id) {
-        this.players[player_id].quit = true
+        this.board.clear_color(player_id)
+        this.players.delete(player_id)
     }
 
     command(cmd) {
         const player_id = cmd[0]
         const verb = cmd[1] 
-        let player = this.players[player_id]
+        let player = this.players.get(player_id)
         if (verb == "right") {
             player.d++
             if (player.d==4) player.d=0
@@ -96,10 +109,7 @@ class Game {
             return
         }
         if (verb == "quit") {
-            if (!player.quit) {
-                player.died = true
-                player.quit = true
-            }
+            this.remove_player(player_id)
             return
         }
         throw(`invalid command ${JSON.stringify(cmd)}`)
@@ -108,9 +118,8 @@ class Game {
     update(commands) {
         this.frame_count ++
         commands.forEach(payload => this.command(payload))
-        let died = []
-        this.players.forEach(player => {
-            if (player.quit) return
+        let died_ids = []
+        for (let [player_id, player] of this.players) {
             if (player.died) return
             if (player.d < 4) {
                 // moving
@@ -126,14 +135,14 @@ class Game {
             }
             if (this.board.get_pix(player.x, player.y)) {
                 // die
-                died.push(player)
-                console.log(`${player.id} died`)
+                died_ids.push(player_id)
+                console.log(`${player_id} died`)
                 player.died = true
             } else {
-                this.board.set_pix(player.x, player.y, player.id+1)
+                this.board.set_pix(player.x, player.y, player_id)
             }
-        })
-        died.forEach(player => this.board.clear_color(player.id + 1))
+        }
+        died_ids.forEach(player_id => this.board.clear_color(player_id))
     }
 }
 

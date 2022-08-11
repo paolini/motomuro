@@ -23,17 +23,21 @@ class Main {
             if (evt.key == "o") this.send(["cmd", "left"])
             else if (evt.key == "p") this.send(["cmd", "right"])
             else if (evt.key == "ArrowLeft") {
-                if (this.game.players[0][2]==1) this.send(["cmd", "right"])
-                if (this.game.players[0][2]==3) this.send(["cmd", "left"])                
+                const d = this.game.players.get(this.player_id).d
+                if (d===1) this.send(["cmd", "right"])
+                if (d===3) this.send(["cmd", "left"])                
             } else if (evt.key == "ArrowRight") {
-                if (this.game.players[0][2]==3) this.send(["cmd", "right"])
-                if (this.game.players[0][2]==1) this.send(["cmd", "left"])                
+                const d = this.game.players.get(this.player_id).d
+                if (d===3) this.send(["cmd", "right"])
+                if (d===1) this.send(["cmd", "left"])                
             } else if (evt.key == "ArrowUp") {
-                if (this.game.players[0][2]==2) this.send(["cmd", "right"])
-                if (this.game.players[0][2]==0) this.send(["cmd", "left"])                
+                const d = this.game.players.get(this.player_id).d
+                if (d===2) this.send(["cmd", "right"])
+                if (d===0) this.send(["cmd", "left"])                
             } else if (evt.key == "ArrowDown") {
-                if (this.game.players[0][2]==0) this.send(["cmd", "right"])
-                if (this.game.players[0][2]==2) this.send(["cmd", "left"])                
+                const d = this.game.players.get(this.player_id).d
+                if (d===0) this.send(["cmd", "right"])
+                if (d===2) this.send(["cmd", "left"])                
             } else if (evt.key == "q") {
                 this.send(["cmd", "quit"])
             } else {
@@ -89,10 +93,9 @@ class Main {
             this.stop()
         } else if (cmd === "board") {
             this.game.frame_count = payload[1]
-            this.game.players.forEach((player,id) => {
-                player.set_state(payload[2][id])
-            })
-            this.game.board.buffer = payload[3]
+            this.game.next_id = payload[2]
+            this.game.set_players(payload[3])
+            this.game.board.buffer = payload[4]
             this.draw()
         } else if (cmd === "add_player") {
             this.game.add_player(payload[1])
