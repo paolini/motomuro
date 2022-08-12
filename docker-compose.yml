@@ -4,6 +4,8 @@ services:
   motomuro:
     image: paolini/motomuro:latest
     restart: unless-stopped
+    volumes:
+      - ./logs:/logs
 #    networks:
 #      - backend
     ports:

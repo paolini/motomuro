@@ -18,7 +18,7 @@ COPY . .
 
 EXPOSE 8000
 
-CMD [ "node", "server/server.js" ]
+CMD [ "./entrypoint.sh" ]
 
 # To build the image:
 # $ docker build . -t paolini/motomuro
