@@ -11,38 +11,33 @@ function show($el) {
     $el.style.display = "block"
 }
 
-/* FULL SCREEN?
-
-$(window).bind("resize", function(){
-    var w = $(window).width();
-    var h = $(window).height();
-
-    $("#mycanvas").css("width", w + "px");
-    $("#mycanvas").css("height", h + "px"); 
-});
-
-//using HTML5 for fullscreen (only newest Chrome + FF)
-$("#mycanvas")[0].webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); //Chrome
-$("#mycanvas")[0].mozRequestFullScreen(); //Firefox
-
-//...
-
-//now i want to cancel fullscreen
-document.webkitCancelFullScreen(); //Chrome
-document.mozCancelFullScreen(); //Firefox
-*/
+function input_with_button($input, $button, action, clear=false) {
+    $button.onclick = evt => {
+        action($input.value)
+        if (clear) $input.value = ""
+    }
+    $input.onkeyup = evt => {
+        if (evt.key === 'Enter') {
+            action($input.value)
+            if (clear) $input.value = ""
+        }
+    }
+}
 
 class Main {
     constructor() {
         this.game = null
         this.player_id = -1
+
         hide($("game_div"))
-        $("name_button").onclick = (evt => {
-            this.send(["set_name", $("name_input").value])
-        })
-        $("room_button").onclick = (evt => {
-            this.send(["new_room", $("room_input").value, 100, 100, 10])
-        })
+
+        input_with_button($("name_input"), $("name_button"), 
+            value => this.send(["set_name", value]))
+        input_with_button($("room_input"), $("room_button"),
+            value => this.send(["new_room", value, 100, 100, 10]), true)
+        input_with_button($("chat_input"), $("chat_button"),
+            value => this.send(["chat", $("chat_input").value]), true)
+
         const $canvas = $("canvas")
         $("full_screen_button").onclick = (evt => {
             if ($canvas.webkitRequestFullScreen) $canvas.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); //Chrome
@@ -60,7 +55,7 @@ class Main {
         this.socket = null
         this.connect()
         this.players = []
-        this.rooms = []        
+        this.rooms = []   
 
         document.onkeydown = evt => {
             if (!this.socket) return
@@ -130,9 +125,12 @@ class Main {
         // console.log(`recv(${msg})`)
         const payload = JSON.parse(msg)
         const cmd = payload[0]
-        if (cmd === "hello") {
+        
+        switch(cmd) {
+        case "hello":
             console.log("server said hello")
-        } else if (cmd === "update") {
+            return
+        case "update":
             if (this.game) {
                 this.game.update(payload[3])
                 const frame_delay = payload[2]
@@ -141,33 +139,52 @@ class Main {
                     this.send(['cmd', 'done', this.game.frame_count])
                 }
             }
-        } else if (cmd === "start") {
+            return
+        case "start":
             this.start(payload)
-        } else if (cmd === "board") {
+            return
+        case "board":
             this.game.set_board(payload[1])
             this.draw()
-        } else if (cmd === "game_players") {
+            return
+        case "game_players":
             this.game.set_players(payload[1])
-        } else if (cmd === "players") {
+            return
+        case "players":
             this.players = payload[1]
             this.update_hall()
-        } else if (cmd === "rooms") {
+            return
+        case "rooms":
             this.rooms = payload[1]
             this.update_hall()
-        } else if (cmd === "room_ready") {
+            return
+        case "chat":
+            let $p = $new("p")
+            let $b = $new("b")
+            $b.textContent = `${payload[1]}:`
+            $p.appendChild($b)
+            let $span = $new("span")
+            $span.textContent = ` ${payload[2]}`
+            $p.appendChild($span)
+            setTimeout(() => $p.remove(), 60000)
+            $("chat_div").appendChild($p)
+            return
+        case "room_ready":
             this.send(["join", payload[1]])
-        } else if (cmd === "join") {
+            return
+        case "join":
             this.room = payload[1]
             $("room_input").value = this.room.name
             console.log(`join room`)
-        } else if (cmd === "quit") {
+            return
+        case "quit":
             this.game = null
             this.player_id = null
             this.room = null
             hide($("game_div"))
             show($("name_div"))
             console.log(`quit game`)
-        } else {
+        default:
             console.error(`unknown command from server: ${cmd}`)
         }
     }
