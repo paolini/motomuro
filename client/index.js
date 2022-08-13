@@ -28,6 +28,11 @@ class Main {
     constructor() {
         this.game = null
         this.player_id = -1
+        const $canvas = $("canvas")
+        this.socket = null
+        this.connect()
+        this.players = []
+        this.rooms = []   
 
         hide($("game_div"))
 
@@ -38,12 +43,14 @@ class Main {
         input_with_button($("chat_input"), $("chat_button"),
             value => this.send(["chat", $("chat_input").value]), true)
 
-        const $canvas = $("canvas")
         $("full_screen_button").onclick = (evt => {
             if ($canvas.webkitRequestFullScreen) $canvas.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); //Chrome
             if ($canvas.mozRequestFullScreen) $canvas.mozRequestFullScreen(); //Firefox
         })
-        $('canvas').onmousedown = 
+        $("quit_button").onclick = () => this.send(["cmd", "quit"])
+        $("left_button").onclick = () => this.send(["cmd", "left"])
+        $("right_button").onclick = () => this.send(["cmd", "right"])
+        // $('canvas').onmousedown = 
         $('canvas').ontouchstart = 
         (evt) => {
             if (2*evt.offsetX < $('canvas').width) {
@@ -52,10 +59,6 @@ class Main {
                 this.send(["cmd", "right"])
             }
         }
-        this.socket = null
-        this.connect()
-        this.players = []
-        this.rooms = []   
 
         document.onkeydown = evt => {
             if (!this.socket) return
