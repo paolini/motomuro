@@ -94,6 +94,7 @@ class Game {
         const player_id = cmd[0]
         const verb = cmd[1] 
         let player = this.players.get(player_id)
+        if (!player) return
         if (verb == "right") {
             player.d++
             if (player.d==4) player.d=0
