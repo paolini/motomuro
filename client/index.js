@@ -161,13 +161,16 @@ class Main {
         case "chat":
             let $p = $new("p")
             let $b = $new("b")
-            $b.textContent = `${payload[1]}:`
+            const name = payload[1]
+            const msg = payload[2]
+            $b.textContent = `${name}:`
             $p.appendChild($b)
             let $span = $new("span")
-            $span.textContent = ` ${payload[2]}`
+            $span.textContent = ` ${msg}`
             $p.appendChild($span)
             setTimeout(() => $p.remove(), 60000)
             $("chat_div").appendChild($p)
+            document.title = `${name}: ${msg}`
             return
         case "room_ready":
             this.send(["join", payload[1]])
