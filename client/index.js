@@ -24,6 +24,53 @@ function input_with_button($input, $button, action, clear=false) {
     }
 }
 
+let i = 0
+let rect = null
+let map = null
+
+function phaser_preload() {
+//        this.load.tilemap('map', 'tile_properties.json');
+    this.load.image('tiles', 'colors.png');
+}
+
+function phaser_create ()
+{   
+    rect = this.add.rectangle(100,200,50,50,0x6666ff)
+
+    // Load a map from a 2D array of tile indices
+    let level = [
+        [  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 ],
+        [  0,  1,  2,  3,  0,  0,  0,  1,  2,  3,  0 ],
+        [  0,  5,  6,  7,  0,  0,  0,  5,  6,  7,  0 ],
+        [  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 ],
+        [  0,  0,  0, 14, 13, 14,  0,  0,  0,  0,  0 ],
+        [  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 ],
+        [  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0 ],
+        [  0,  0, 14, 14, 14, 14, 14,  0,  0,  0, 15 ],
+        [  0,  0,  0,  0,  0,  0,  0,  0,  0, 15, 15 ],
+        [ 35, 36, 37,  0,  0,  0,  0,  0, 15, 15, 15 ],
+        [ 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39 ]
+        ]
+
+    // When loading from an array, make sure to specify the tileWidth and tileHeight
+    map = this.make.tilemap({ data_: level, width: 60, height: 40, tileWidth: 4, tileHeight: 4 });
+    let tiles = map.addTilesetImage('tiles');
+    let layer = map.createLayer(0, tiles, 0, 0);
+    i = 0
+}
+
+function phaser_update ()
+{
+
+    rect.x += 10
+    if (rect.x >= 600) rect.x = 0
+    rect.y += 1
+    if (rect.y >= 300) rect.y = 0
+    i++
+    if (i==8) i=0
+    map.putTileAt(i, 3, 2, false, 0)
+}
+
 class Main {
     constructor() {
         this.game = null
@@ -33,6 +80,7 @@ class Main {
         this.connect()
         this.players = []
         this.rooms = []   
+        this.phaser = null
 
         hide($("game_div"))
 
@@ -184,12 +232,8 @@ class Main {
             console.log(`join room`)
             return
         case "quit":
-            this.game = null
-            this.player_id = null
-            this.room = null
-            hide($("game_div"))
-            show($("name_div"))
-            console.log(`quit game`)
+            this.stop()
+            return
         default:
             console.error(`unknown command from server: ${cmd}`)
         }
@@ -215,6 +259,27 @@ class Main {
         this.game.board.clear(0)
         this.draw()
         show($("game_div"))
+
+        this.phaser = new Phaser.Game({
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: "phaser",
+            backgroundColor: '#2d2d2d',
+            scene: {phaser_preload, phaser_create, phaser_update}
+        });
+    }
+
+    stop() {
+        this.phaser.destroy(true, false)
+        this.scene = null
+        this.phaser = null
+        this.game = null
+        this.player_id = null
+        this.room = null
+        hide($("game_div"))
+        show($("name_div"))
+        console.log(`quit game`)
     }
     
     draw() {
@@ -300,6 +365,7 @@ class Main {
             $li.textContent = player[1]
         })
     }
+
 }
 
 let main = new Main()
